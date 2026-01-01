@@ -113,6 +113,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Global state and elements
         const firebaseConfig = JSON.parse(__firebase_config);
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -130,12 +131,13 @@
 
         const startApp = async () => {
             try {
-                // Registrar el observador de estado antes de intentar el login
                 onAuthStateChanged(auth, (u) => {
                     if (u) {
                         user = u;
-                        dbStatus.innerHTML = `<span class="h-2 w-2 rounded-full bg-green-500"></span> ONLINE`;
-                        dbStatus.className = "text-[10px] font-black text-green-400 flex items-center gap-1.5";
+                        if(dbStatus) {
+                            dbStatus.innerHTML = `<span class="h-2 w-2 rounded-full bg-green-500"></span> ONLINE`;
+                            dbStatus.className = "text-[10px] font-black text-green-400 flex items-center gap-1.5";
+                        }
                         
                         if (!sessionStorage.getItem('canarito_v11_active')) {
                             registerNewVisit();
@@ -143,11 +145,10 @@
                         }
                         syncData();
                     } else {
-                        dbStatus.innerHTML = `<span class="h-2 w-2 rounded-full bg-red-500"></span> OFFLINE`;
+                        if(dbStatus) dbStatus.innerHTML = `<span class="h-2 w-2 rounded-full bg-red-500"></span> OFFLINE`;
                     }
                 });
 
-                // Intentar login
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
@@ -155,7 +156,7 @@
                 }
             } catch (e) { 
                 console.error("Firebase Auth Error:", e); 
-                dbStatus.innerHTML = `<span class="h-2 w-2 rounded-full bg-red-500"></span> ERROR`;
+                if(dbStatus) dbStatus.innerHTML = `<span class="h-2 w-2 rounded-full bg-red-500"></span> ERROR`;
             }
         };
 
@@ -175,7 +176,11 @@
 
             const newsCol = collection(db, 'artifacts', appId, 'public', 'data', 'news');
             onSnapshot(newsCol, (snap) => {
-                document.getElementById('loading-initial').classList.add('hidden');
+                const loadingInitial = document.getElementById('loading-initial');
+                if (loadingInitial) {
+                    loadingInitial.classList.add('hidden');
+                }
+                
                 const news = snap.docs
                     .map(d => ({id: d.id, ...d.data()}))
                     .sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
@@ -184,11 +189,12 @@
 
             const statsCol = collection(db, 'artifacts', appId, 'public', 'data', 'stats');
             onSnapshot(statsCol, (snap) => {
-                visitCountEl.textContent = snap.size || 0;
+                if(visitCountEl) visitCountEl.textContent = snap.size || 0;
             });
         }
 
         function renderNews(news) {
+            if (!newsContainer) return;
             if (news.length === 0) {
                 newsContainer.innerHTML = `<div class="bg-white p-24 rounded-[3rem] text-center border-4 border-dashed border-slate-100 text-slate-300 font-black uppercase tracking-[0.2em] italic">No hay noticias disponibles</div>`;
                 return;
@@ -235,9 +241,11 @@
             if (!user) return;
             
             const topic = document.getElementById('topic').value;
-            generateBtn.disabled = true;
-            document.getElementById('loading').classList.remove('hidden');
-            statusMessage.classList.add('hidden');
+            const loading = document.getElementById('loading');
+            
+            if(generateBtn) generateBtn.disabled = true;
+            if(loading) loading.classList.remove('hidden');
+            if(statusMessage) statusMessage.classList.add('hidden');
 
             try {
                 const prompt = `Investiga noticias reales de HOY sobre ${topic} en Canarias. Escribe una crónica periodística seria. Línea 1: Titular. Párrafos: 3 párrafos. Sin asteriscos ni negritas.`;
@@ -263,19 +271,26 @@
             } catch (e) {
                 showStatus("⚠️ " + e.message, true);
             } finally {
-                generateBtn.disabled = false;
-                document.getElementById('loading').classList.add('hidden');
+                if(generateBtn) generateBtn.disabled = false;
+                if(loading) loading.classList.add('hidden');
             }
         }
 
         function showStatus(msg, isError) {
+            if(!statusMessage) return;
             statusMessage.textContent = msg;
             statusMessage.className = `p-4 rounded-2xl text-[11px] font-bold text-center border ${isError ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`;
             statusMessage.classList.remove('hidden');
         }
 
-        generateBtn.addEventListener('click', postNews);
-        startApp();
+        if(generateBtn) generateBtn.addEventListener('click', postNews);
+        
+        // Ensure DOM is ready
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", startApp);
+        } else {
+            startApp();
+        }
     </script>
 </body>
 </html>
