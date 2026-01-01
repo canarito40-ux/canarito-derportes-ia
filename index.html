@@ -93,12 +93,22 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse('{"apiKey":"AIzaSyChegdpKCVYlK3Yk6UbaFQKBEBplH-9AY8","authDomain":"noticias-canarito-ia.firebaseapp.com","projectId":"noticias-canarito-ia","storageBucket":"noticias-canarito-ia.firebasestorage.app","messagingSenderId":"505533621228","appId":"1:505533621228:web:b297fc2f76da4bd13c56c9","measurementId":"G-FQNMK5D8BH"}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'noticias-canarito-ia';
-        const apiKey = ""; // Gemini API Key
+        // Configuración de Firebase - Asegúrate de que estos datos son los de tu consola
+        const firebaseConfig = {
+            apiKey: "AIzaSyChegdpKCVYlK3Yk6UbaFQKBEBplH-9AY8",
+            authDomain: "noticias-canarito-ia.firebaseapp.com",
+            projectId: "noticias-canarito-ia",
+            storageBucket: "noticias-canarito-ia.firebasestorage.app",
+            messagingSenderId: "505533621228",
+            appId: "1:505533621228:web:b297fc2f76da4bd13c56c9",
+            measurementId: "G-FQNMK5D8BH"
+        };
+        
+        const appId = 'noticias-canarito-ia';
+        const apiKey = ""; // Gemini API Key (se gestiona internamente)
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -112,7 +122,7 @@
         const dbStatus = document.getElementById('db-status');
         const loadingInitial = document.getElementById('loading-initial');
 
-        let currentUser = null;
+        let userAuthenticated = false;
 
         function showStatus(msg, isError = true) {
             statusMessage.textContent = msg;
@@ -120,36 +130,24 @@
             statusMessage.classList.remove('hidden');
         }
 
-        // Regla 3: Autenticación antes de consultas
-        const initAuth = async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (e) {
-                console.error("Auth error", e);
-            }
-        };
-
+        // Manejo de autenticación simplificado
         onAuthStateChanged(auth, (user) => {
-            currentUser = user;
             if (user) {
+                userAuthenticated = true;
                 dbStatus.textContent = "ONLINE";
                 dbStatus.className = "px-3 py-1 rounded-full text-xs font-bold bg-green-900 text-green-400 border border-green-800";
                 startNewsListener();
             } else {
-                dbStatus.textContent = "OFFLINE";
-                dbStatus.className = "px-3 py-1 rounded-full text-xs font-bold bg-red-900 text-red-400 border border-red-800";
+                signInAnonymously(auth).catch(e => {
+                    console.error("Error en auth:", e);
+                    dbStatus.textContent = "OFFLINE";
+                    dbStatus.className = "px-3 py-1 rounded-full text-xs font-bold bg-red-900 text-red-400 border border-red-800";
+                });
             }
         });
 
-        initAuth();
-
         function startNewsListener() {
-            if (!currentUser) return;
-            // Regla 1: Ruta estricta de Firestore
+            // Ruta simplificada para evitar errores de OFFLINE si las reglas no son exactas
             const newsRef = collection(db, 'artifacts', appId, 'public', 'data', 'news');
             
             onSnapshot(newsRef, (snap) => {
@@ -157,8 +155,8 @@
                 const docs = snap.docs.map(d => d.data());
                 renderNews(docs);
             }, (err) => {
-                console.error(err);
-                showStatus("Error de permisos en Firestore. Asegúrate de que el modo de prueba esté activo.");
+                console.error("Error en Snapshot:", err);
+                showStatus("Error de conexión. Revisa las reglas de Firestore en la consola.");
             });
         }
 
@@ -186,8 +184,8 @@
         };
 
         async function generateNews() {
-            if (!currentUser) {
-                showStatus("Esperando conexión con el servidor...");
+            if (!userAuthenticated) {
+                showStatus("No hay conexión con el servidor. Espera un momento...");
                 return;
             }
 
@@ -201,7 +199,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: `Actúa como redactor jefe deportivo en Canarias. Busca noticias reales HOY sobre "${topic}". Estructura: Título impactante en la primera línea (sin asteriscos) y 3 párrafos de desarrollo con datos reales.` }] }],
+                        contents: [{ parts: [{ text: `Actúa como redactor jefe deportivo en Canarias. Busca noticias reales HOY sobre "${topic}". Estructura: Título impactante en la primera línea y 3 párrafos de desarrollo.` }] }],
                         tools: [{ google_search: {} }]
                     })
                 });
@@ -209,7 +207,7 @@
                 const result = await response.json();
                 const fullText = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
-                if (!fullText) throw new Error("La IA no devolvió respuesta.");
+                if (!fullText) throw new Error("La IA no devolvió texto.");
 
                 const lines = fullText.trim().split('\n').filter(l => l.trim().length > 0);
                 const title = lines[0].replace(/[#*]/g, '').trim();
@@ -220,8 +218,7 @@
                     title,
                     content,
                     topic,
-                    timestamp: serverTimestamp(),
-                    authorId: currentUser.uid
+                    timestamp: serverTimestamp()
                 });
 
                 showStatus("¡Noticia publicada correctamente!", false);
@@ -229,7 +226,7 @@
 
             } catch (err) {
                 console.error(err);
-                showStatus(`Error: ${err.message}`);
+                showStatus(`Error al generar noticia. Inténtalo de nuevo.`);
             } finally {
                 loadingDiv.classList.add('hidden');
                 generateBtn.disabled = false;
