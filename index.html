@@ -3,150 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Noticias Deportivas Canarias</title>
+    <title>Canarito Deportes | Noticias IA 🇮🇨</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; color: #1f2937; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
         .news-card { transition: all 0.3s ease; }
-        .news-card:hover { transform: translateY(-4px); }
+        .news-card:hover { transform: translateY(-3px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="flex flex-col min-h-screen custom-scrollbar">
 
-    <header class="bg-gray-900 text-white p-6 shadow-xl">
+    <!-- Encabezado Principal -->
+    <header class="bg-slate-900 text-white p-6 sticky top-0 z-50 shadow-2xl border-b border-blue-900/30">
         <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-                <h1 class="text-4xl font-black tracking-tighter text-blue-500">CANARITO<span class="text-white underline decoration-blue-600">DEPORTES</span></h1>
-                <p class="text-gray-400 text-sm font-medium">Información deportiva canaria generada por IA</p>
+            <div class="text-center md:text-left">
+                <h1 class="text-4xl font-black tracking-tighter italic">
+                    <span class="text-blue-500">CANARITO</span><span class="text-white">DEPORTES</span>
+                </h1>
+                <p class="text-blue-400/80 text-[10px] uppercase tracking-[0.3em] font-bold mt-1">Inteligencia Artificial • Periodismo Canario</p>
             </div>
-            <div class="flex items-center gap-4">
-                <!-- Contador de Visitas -->
-                <div class="flex flex-col items-end border-r border-gray-700 pr-4">
-                    <span class="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Visitas Totales</span>
-                    <div class="flex items-center text-blue-400 font-bold">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            
+            <div class="flex items-center gap-4 bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50 backdrop-blur-sm">
+                <div class="text-right border-r border-slate-700 pr-4">
+                    <p class="text-[9px] uppercase text-slate-500 font-black tracking-widest">Lectores Reales</p>
+                    <div class="flex items-center justify-end text-blue-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
-                        <span id="visit-count">...</span>
+                        <span class="text-xl font-black leading-none" id="visit-count">0</span>
                     </div>
                 </div>
-                <!-- Estado del Servidor -->
-                <div class="flex flex-col items-end">
-                    <span class="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Estado</span>
-                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-gray-800 border border-gray-700" id="db-status">Iniciando</span>
+                <div class="text-right">
+                    <p class="text-[9px] uppercase text-slate-500 font-black tracking-widest">Sistema</p>
+                    <p class="text-[10px] font-black flex items-center gap-1.5" id="db-status">
+                        <span class="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span> CONECTANDO
+                    </p>
                 </div>
             </div>
         </div>
     </header>
 
-    <main class="container mx-auto p-6 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-        <!-- Panel de Control -->
-        <div class="lg:col-span-4">
-            <div class="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 sticky top-6">
-                <h2 class="text-2xl font-bold mb-6 flex items-center">
-                    <span class="bg-blue-600 w-2 h-8 rounded mr-3"></span>
-                    Redacción Virtual
-                </h2>
+    <main class="container mx-auto p-4 md:p-8 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+        
+        <!-- Sidebar: Herramientas de Redacción -->
+        <aside class="lg:col-span-4 order-2 lg:order-1">
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 sticky top-32">
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="h-10 w-2 bg-blue-600 rounded-full"></div>
+                    <h2 class="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">Redacción IA</h2>
+                </div>
                 
                 <div class="space-y-6">
                     <div>
-                        <label for="topic" class="block text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">Seleccionar Fuente</label>
-                        <select id="topic" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-4 border bg-gray-50 text-gray-700 font-medium">
-                            <option value="UD Las Palmas">UD Las Palmas</option>
-                            <option value="CD Tenerife">CD Tenerife</option>
-                            <option value="La Laguna Tenerife (ACB)">La Laguna Tenerife (ACB)</option>
-                            <option value="Dreamland Gran Canaria (ACB)">Dreamland Gran Canaria (ACB)</option>
-                            <option value="UDG Tenerife Egatesa">Fútbol Femenino (Tenerife)</option>
-                            <option value="Lucha Canaria">Lucha Canaria</option>
+                        <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2">Cobertura Actual</label>
+                        <select id="topic" class="w-full rounded-2xl border-slate-200 bg-slate-50 p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 border-2 transition-all cursor-pointer appearance-none text-slate-700">
+                            <option value="UD Las Palmas">⚽ UD Las Palmas</option>
+                            <option value="CD Tenerife">⚽ CD Tenerife</option>
+                            <option value="La Laguna Tenerife (ACB)">🏀 La Laguna Tenerife</option>
+                            <option value="Dreamland Gran Canaria (ACB)">🏀 Dreamland Gran Canaria</option>
+                            <option value="UDG Tenerife Egatesa">♀️ Fútbol Femenino</option>
+                            <option value="Lucha Canaria">🤼 Lucha Canaria</option>
                         </select>
                     </div>
 
-                    <button id="generateBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 px-6 rounded-xl shadow-lg transition-all active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed uppercase tracking-widest">
-                        Generar Noticia de Hoy
+                    <button id="generateBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-200 transition-all active:scale-[0.98] disabled:opacity-50 uppercase text-xs tracking-[0.2em]">
+                        Publicar Noticia Ahora
                     </button>
-                    
-                    <div id="loading" class="hidden">
-                        <div class="flex flex-col items-center justify-center p-6 bg-blue-50 rounded-2xl border-2 border-dashed border-blue-200">
-                            <svg class="animate-spin h-8 w-8 text-blue-600 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span class="text-xs font-bold text-blue-800 text-center uppercase">La IA está analizando la prensa deportiva...</span>
-                        </div>
+
+                    <div id="loading" class="hidden bg-blue-50 p-6 rounded-2xl border border-blue-100 border-dashed text-center">
+                        <div class="inline-block animate-spin h-6 w-6 border-4 border-blue-600 border-t-transparent rounded-full mb-3"></div>
+                        <p class="text-[10px] font-black text-blue-800 uppercase tracking-widest">Analizando actualidad canaria...</p>
                     </div>
 
-                    <div id="statusMessage" class="hidden p-4 rounded-xl text-sm font-bold animate-pulse"></div>
-                    
-                    <button id="retryAuthBtn" class="hidden w-full text-xs text-blue-600 underline font-bold py-2">¿Sigue dando error? Reintentar conexión</button>
+                    <div id="statusMessage" class="hidden p-4 rounded-2xl text-[11px] font-bold text-center border"></div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Feed de Noticias -->
-        <div class="lg:col-span-8">
-            <h2 class="text-3xl font-black mb-8 text-gray-900 flex items-center uppercase italic">
-                Última Hora
-                <span class="ml-4 flex h-3 w-3">
-                    <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-red-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                </span>
-            </h2>
-            
-            <div id="news-container" class="space-y-8">
-                <div id="loading-initial" class="flex flex-col items-center justify-center py-20 text-gray-400">
-                    <p class="font-bold uppercase tracking-widest animate-pulse">Cargando noticias...</p>
+                <div class="mt-8 pt-8 border-t border-slate-100">
+                    <p class="text-[10px] text-slate-400 font-medium leading-relaxed italic">
+                        * Al pulsar, la IA buscará las últimas novedades y redactará una noticia original para el feed.
+                    </p>
                 </div>
             </div>
-        </div>
+        </aside>
+
+        <!-- Feed de Noticias Principal -->
+        <section class="lg:col-span-8 order-1 lg:order-2">
+            <div class="flex items-center justify-between mb-10 pb-4 border-b-2 border-slate-100">
+                <h2 class="text-3xl font-black text-slate-900 italic uppercase tracking-tighter flex items-center gap-3">
+                    Última Hora
+                    <span class="flex h-3 w-3 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
+                    </span>
+                </h2>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Actualizado hace instantes</span>
+            </div>
+
+            <div id="news-container" class="space-y-8">
+                <div id="loading-initial" class="text-center py-32">
+                    <div class="inline-block animate-bounce h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center mb-4 mx-auto">
+                        <span class="text-blue-600 font-bold">...</span>
+                    </div>
+                    <p class="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Sincronizando Archivo Deportivo</p>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <footer class="bg-gray-900 text-gray-600 p-8 mt-12 border-t border-gray-800 text-center">
-        <p class="text-[10px] uppercase tracking-[0.3em]">PROYECTO CANARITO IA • 2024 • DATOS REALES EN TIEMPO REAL</p>
+    <footer class="bg-slate-900 text-slate-600 p-16 mt-20 text-center border-t border-slate-800 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-white to-blue-600 opacity-20"></div>
+        <p class="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 mb-4">Canarito Deportes • IA 🇮🇨 2024</p>
+        <p class="text-xs max-w-xl mx-auto leading-loose font-medium">
+            Plataforma experimental de noticias locales generadas mediante inteligencia artificial. Todos los derechos reservados.
+        </p>
     </footer>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Configuración de Firebase
+        // CONFIGURACIÓN FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyChegdpKCVYlK3Yk6UbaFQKBEBplH-9AY8",
             authDomain: "noticias-canarito-ia.firebaseapp.com",
             projectId: "noticias-canarito-ia",
             storageBucket: "noticias-canarito-ia.firebasestorage.app",
             messagingSenderId: "505533621228",
-            appId: "1:505533621228:web:b297fc2f76da4bd13c56c9",
-            measurementId: "G-FQNMK5D8BH"
+            appId: "1:505533621228:web:b297fc2f76da4bd13c56c9"
         };
         
         const appId = 'noticias-canarito-ia';
-        const apiKey = "AIzaSyB7dsq5xGobd6Px5v5KfCE-BplAnfX5z5k"; 
+        const geminiKey = "AIzaSyB7dsq5xGobd6Px5v5KfCE-BplAnfX5z5k";
 
         const dbStatus = document.getElementById('db-status');
         const visitCountEl = document.getElementById('visit-count');
         const generateBtn = document.getElementById('generateBtn');
-        const loadingDiv = document.getElementById('loading');
-        const statusMessage = document.getElementById('statusMessage');
         const newsContainer = document.getElementById('news-container');
-        const topicSelect = document.getElementById('topic');
-        const loadingInitial = document.getElementById('loading-initial');
-        const retryBtn = document.getElementById('retryAuthBtn');
+        const statusMessage = document.getElementById('statusMessage');
 
-        function showStatus(msg, isError = true) {
-            statusMessage.textContent = msg;
-            statusMessage.className = `p-4 rounded-xl text-sm font-bold ${isError ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}`;
-            statusMessage.classList.remove('hidden');
-        }
+        let db, auth, isOnline = false;
 
-        let db, auth;
-        let isOnline = false;
-        let visitorRegistered = false;
-
-        const connect = async () => {
+        const startApp = async () => {
             try {
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
@@ -155,144 +158,108 @@
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         isOnline = true;
-                        dbStatus.textContent = "ONLINE";
-                        dbStatus.className = "px-3 py-1 rounded-full text-xs font-bold bg-green-900 text-green-400 border border-green-800";
-                        statusMessage.classList.add('hidden');
-                        retryBtn.classList.add('hidden');
+                        dbStatus.innerHTML = `<span class="h-2 w-2 rounded-full bg-green-500"></span> ONLINE`;
+                        dbStatus.className = "text-[10px] font-black text-green-400 flex items-center gap-1.5";
                         
-                        // Registrar visita solo una vez por sesión
-                        if (!visitorRegistered) {
-                            registerVisit();
-                            visitorRegistered = true;
+                        // ANTI-REFRESCO: Solo cuenta si es sesión nueva
+                        if (!sessionStorage.getItem('canarito_v5_active')) {
+                            registerNewVisit();
+                            sessionStorage.setItem('canarito_v5_active', 'true');
                         }
 
-                        startNewsListener();
-                        startStatsListener();
+                        syncData();
                     } else {
-                        signInAnonymously(auth).catch((err) => {
-                            console.error("Auth Error:", err.code);
-                            dbStatus.textContent = "ERROR";
-                            retryBtn.classList.remove('hidden');
-                        });
+                        signInAnonymously(auth);
                     }
                 });
-            } catch (e) {
-                dbStatus.textContent = "CONFIG ERROR";
-            }
+            } catch (e) { dbStatus.textContent = "CONEXIÓN ERROR"; }
         };
 
-        async function registerVisit() {
+        async function registerNewVisit() {
             try {
-                const visitsRef = collection(db, 'artifacts', appId, 'public', 'data', 'stats');
-                await addDoc(visitsRef, {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'stats'), {
                     type: 'visit',
-                    timestamp: serverTimestamp(),
-                    userAgent: navigator.userAgent
+                    timestamp: serverTimestamp()
                 });
-            } catch (e) {
-                console.error("Error registrando visita:", e);
-            }
+            } catch (e) { console.warn("Log failed"); }
         }
 
-        function startStatsListener() {
-            const statsRef = collection(db, 'artifacts', appId, 'public', 'data', 'stats');
-            onSnapshot(statsRef, (snap) => {
-                // Contamos cuántos documentos hay en la colección de estadísticas
-                visitCountEl.textContent = snap.size;
-            }, (err) => {
-                console.error("Error en stats:", err);
-                visitCountEl.textContent = "Error";
+        function syncData() {
+            // Escuchar Noticias (Ordenadas por tiempo)
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'news'), (snap) => {
+                document.getElementById('loading-initial').classList.add('hidden');
+                const news = snap.docs.map(d => d.data()).sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+                renderNews(news);
+            });
+            // Escuchar Contador
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'stats'), (snap) => {
+                visitCountEl.textContent = snap.size || 0;
             });
         }
 
-        function startNewsListener() {
-            const newsRef = collection(db, 'artifacts', appId, 'public', 'data', 'news');
-            onSnapshot(newsRef, (snap) => {
-                loadingInitial.classList.add('hidden');
-                renderNews(snap.docs.map(d => d.data()));
-            }, (err) => {
-                console.error("Firestore Error:", err);
-                dbStatus.textContent = "DB ERROR";
-            });
-        }
-
-        const renderNews = (newsData) => {
-            if (newsData.length === 0) {
-                newsContainer.innerHTML = `<div class="bg-white p-20 rounded-3xl text-center border-4 border-dashed border-gray-100"><p class="text-gray-400 font-black uppercase tracking-widest text-xl">Sin noticias publicadas</p></div>`;
+        function renderNews(news) {
+            if (news.length === 0) {
+                newsContainer.innerHTML = `<div class="bg-white p-24 rounded-[3rem] text-center border-4 border-dashed border-slate-100 text-slate-300 font-black uppercase tracking-[0.2em] italic">No hay noticias publicadas</div>`;
                 return;
             }
-            const sorted = [...newsData].sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
-            newsContainer.innerHTML = sorted.map(n => `
-                <article class="news-card bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-gray-100">
-                    <div class="flex justify-between items-center mb-6">
-                        <span class="bg-blue-600 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest">${n.topic}</span>
-                        <span class="text-xs text-gray-400 italic font-medium">${n.timestamp ? new Date(n.timestamp.toMillis()).toLocaleString('es-ES') : 'Recién'}</span>
+            newsContainer.innerHTML = news.map(n => `
+                <article class="news-card bg-white p-8 md:p-12 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-2 h-full bg-blue-600 transition-all group-hover:w-3"></div>
+                    <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
+                        <span class="bg-blue-600 text-white text-[10px] font-black px-5 py-2 rounded-xl uppercase tracking-widest">${n.topic}</span>
+                        <span class="text-[11px] text-slate-400 font-black uppercase tracking-tighter">${n.timestamp ? new Date(n.timestamp.toMillis()).toLocaleString('es-ES', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' }) : 'Publicando...'}</span>
                     </div>
-                    <h3 class="text-xl md:text-2xl font-black text-gray-900 mb-4 leading-tight">${n.title}</h3>
-                    <div class="text-gray-600 leading-relaxed whitespace-pre-line text-sm md:text-base">${n.content}</div>
+                    <h3 class="text-2xl md:text-4xl font-black text-slate-900 mb-8 leading-tight tracking-tighter italic uppercase">${n.title}</h3>
+                    <div class="text-slate-600 leading-relaxed whitespace-pre-line text-base md:text-lg font-medium selection:bg-blue-100">${n.content}</div>
                 </article>
             `).join('');
-        };
-
-        async function fetchGemini(prompt, retries = 5, delay = 1000) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt }] }],
-                            tools: [{ google_search: {} }]
-                        })
-                    });
-                    if (!response.ok) throw new Error(`Error API: ${response.status}`);
-                    const data = await response.json();
-                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                } catch (err) {
-                    if (i === retries - 1) throw err;
-                    await new Promise(r => setTimeout(r, delay));
-                    delay *= 2;
-                }
-            }
         }
 
-        async function generateNews() {
-            if (!isOnline) {
-                showStatus("No estás conectado a la base de datos.");
-                return;
-            }
-            const topic = topicSelect.value;
-            loadingDiv.classList.remove('hidden');
+        async function postNews() {
+            if (!isOnline) return;
+            const topic = document.getElementById('topic').value;
             generateBtn.disabled = true;
+            document.getElementById('loading').classList.remove('hidden');
             statusMessage.classList.add('hidden');
 
             try {
-                const prompt = `Actúa como periodista deportivo canario. Escribe una noticia real de HOY sobre ${topic}. 
-                Estructura: Línea 1 Titular atractivo. Resto 3 párrafos cortos con datos actuales reales. No uses asteriscos.`;
-                const text = await fetchGemini(prompt);
-                if (!text) throw new Error("Sin respuesta de IA");
-                const lines = text.trim().split('\n').filter(l => l.trim().length > 0);
-                const newsRef = collection(db, 'artifacts', appId, 'public', 'data', 'news');
-                await addDoc(newsRef, {
+                const prompt = `Escribe una noticia real de hoy sobre ${topic} para un público de Canarias. 
+                Formato obligatorio: 
+                - Línea 1: Titular impactante (sin asteriscos ni #).
+                - Resto: 3 párrafos cortos de actualidad real de hoy mismo.
+                - IMPORTANTE: No uses asteriscos (*) ni símbolos de marcado en ninguna parte del texto.`;
+                
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], tools: [{ google_search: {} }] })
+                });
+                const data = await res.json();
+                const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                const lines = raw.trim().split('\n').filter(l => l.trim().length > 0);
+                
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'news'), {
                     title: lines[0].replace(/[#*]/g, '').trim(),
                     content: lines.slice(1).join('\n\n').replace(/[*]/g, '').trim(),
                     topic,
                     timestamp: serverTimestamp()
                 });
-                showStatus("¡Noticia publicada!", false);
-            } catch (err) {
-                showStatus("Error: " + err.message);
+                
+                statusMessage.textContent = "✅ Publicado en el Feed";
+                statusMessage.className = "p-4 rounded-2xl text-[11px] font-bold text-center bg-green-50 text-green-700 border-green-200";
+                statusMessage.classList.remove('hidden');
+            } catch (e) {
+                statusMessage.textContent = "❌ Error de conexión con IA";
+                statusMessage.className = "p-4 rounded-2xl text-[11px] font-bold text-center bg-red-50 text-red-700 border-red-200";
+                statusMessage.classList.remove('hidden');
             } finally {
-                loadingDiv.classList.add('hidden');
                 generateBtn.disabled = false;
+                document.getElementById('loading').classList.add('hidden');
             }
         }
 
-        generateBtn.addEventListener('click', generateNews);
-        retryBtn.addEventListener('click', () => location.reload());
-        
-        connect();
+        generateBtn.addEventListener('click', postNews);
+        startApp();
     </script>
 </body>
 </html>
