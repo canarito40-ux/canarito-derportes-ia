@@ -155,24 +155,26 @@
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                onAuthStateChanged(auth, (user) => {
+                onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         isOnline = true;
                         dbStatus.innerHTML = `<span class="h-2 w-2 rounded-full bg-green-500"></span> ONLINE`;
                         dbStatus.className = "text-[10px] font-black text-green-400 flex items-center gap-1.5";
                         
-                        // ANTI-REFRESCO: Solo cuenta si es sesión nueva
-                        if (!sessionStorage.getItem('canarito_v5_active')) {
+                        if (!sessionStorage.getItem('canarito_v6_active')) {
                             registerNewVisit();
-                            sessionStorage.setItem('canarito_v5_active', 'true');
+                            sessionStorage.setItem('canarito_v6_active', 'true');
                         }
 
                         syncData();
                     } else {
-                        signInAnonymously(auth);
+                        await signInAnonymously(auth);
                     }
                 });
-            } catch (e) { dbStatus.textContent = "CONEXIÓN ERROR"; }
+            } catch (e) { 
+                dbStatus.textContent = "CONEXIÓN ERROR"; 
+                console.error("Firebase error:", e);
+            }
         };
 
         async function registerNewVisit() {
@@ -185,13 +187,12 @@
         }
 
         function syncData() {
-            // Escuchar Noticias (Ordenadas por tiempo)
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'news'), (snap) => {
                 document.getElementById('loading-initial').classList.add('hidden');
                 const news = snap.docs.map(d => d.data()).sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
                 renderNews(news);
-            });
-            // Escuchar Contador
+            }, (err) => console.error("Snapshot error:", err));
+
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'stats'), (snap) => {
                 visitCountEl.textContent = snap.size || 0;
             });
@@ -206,56 +207,76 @@
                 <article class="news-card bg-white p-8 md:p-12 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
                     <div class="absolute top-0 left-0 w-2 h-full bg-blue-600 transition-all group-hover:w-3"></div>
                     <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
-                        <span class="bg-blue-600 text-white text-[10px] font-black px-5 py-2 rounded-xl uppercase tracking-widest">${n.topic}</span>
-                        <span class="text-[11px] text-slate-400 font-black uppercase tracking-tighter">${n.timestamp ? new Date(n.timestamp.toMillis()).toLocaleString('es-ES', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' }) : 'Publicando...'}</span>
+                        <span class="bg-blue-600 text-white text-[10px] font-black px-5 py-2 rounded-xl uppercase tracking-widest">${n.topic || 'General'}</span>
+                        <span class="text-[11px] text-slate-400 font-black uppercase tracking-tighter">${n.timestamp ? new Date(n.timestamp.toMillis()).toLocaleString('es-ES') : 'Recién publicado'}</span>
                     </div>
-                    <h3 class="text-2xl md:text-4xl font-black text-slate-900 mb-8 leading-tight tracking-tighter italic uppercase">${n.title}</h3>
-                    <div class="text-slate-600 leading-relaxed whitespace-pre-line text-base md:text-lg font-medium selection:bg-blue-100">${n.content}</div>
+                    <h3 class="text-2xl md:text-4xl font-black text-slate-900 mb-8 leading-tight tracking-tighter italic uppercase">${n.title || 'Sin título'}</h3>
+                    <div class="text-slate-600 leading-relaxed whitespace-pre-line text-base md:text-lg font-medium selection:bg-blue-100">${n.content || 'Sin contenido'}</div>
                 </article>
             `).join('');
         }
 
         async function postNews() {
-            if (!isOnline) return;
+            if (!isOnline) {
+                showStatus("❌ Esperando conexión...", true);
+                return;
+            }
+            
             const topic = document.getElementById('topic').value;
             generateBtn.disabled = true;
             document.getElementById('loading').classList.remove('hidden');
             statusMessage.classList.add('hidden');
 
             try {
-                const prompt = `Escribe una noticia real de hoy sobre ${topic} para un público de Canarias. 
-                Formato obligatorio: 
-                - Línea 1: Titular impactante (sin asteriscos ni #).
-                - Resto: 3 párrafos cortos de actualidad real de hoy mismo.
-                - IMPORTANTE: No uses asteriscos (*) ni símbolos de marcado en ninguna parte del texto.`;
+                const prompt = `Escribe una noticia real y actual de hoy sobre ${topic} en Canarias. 
+                IMPORTANTE: No uses asteriscos, hashtags ni símbolos especiales. 
+                Estructura: 
+                Línea 1: Titular.
+                Líneas siguientes: 3 párrafos de desarrollo.`;
                 
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiKey}`, {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiKey}`;
+                
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], tools: [{ google_search: {} }] })
+                    body: JSON.stringify({ 
+                        contents: [{ parts: [{ text: prompt }] }],
+                        tools: [{ "google_search": {} }]
+                    })
                 });
-                const data = await res.json();
-                const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                const lines = raw.trim().split('\n').filter(l => l.trim().length > 0);
+
+                if (!response.ok) throw new Error("Error en la respuesta de la API");
+
+                const data = await response.json();
+                const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 
+                if (!rawText) throw new Error("La IA no devolvió texto. Inténtalo de nuevo.");
+
+                const lines = rawText.trim().split('\n').filter(l => l.trim().length > 0);
+                const title = lines[0].replace(/[#*]/g, '').trim();
+                const content = lines.slice(1).join('\n\n').replace(/[*]/g, '').trim();
+
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'news'), {
-                    title: lines[0].replace(/[#*]/g, '').trim(),
-                    content: lines.slice(1).join('\n\n').replace(/[*]/g, '').trim(),
+                    title: title || "Noticia Actualizada",
+                    content: content || "Contenido en proceso de actualización.",
                     topic,
                     timestamp: serverTimestamp()
                 });
                 
-                statusMessage.textContent = "✅ Publicado en el Feed";
-                statusMessage.className = "p-4 rounded-2xl text-[11px] font-bold text-center bg-green-50 text-green-700 border-green-200";
-                statusMessage.classList.remove('hidden');
+                showStatus("✅ ¡Publicada con éxito!", false);
             } catch (e) {
-                statusMessage.textContent = "❌ Error de conexión con IA";
-                statusMessage.className = "p-4 rounded-2xl text-[11px] font-bold text-center bg-red-50 text-red-700 border-red-200";
-                statusMessage.classList.remove('hidden');
+                console.error("Post error:", e);
+                showStatus("❌ Error: " + e.message, true);
             } finally {
                 generateBtn.disabled = false;
                 document.getElementById('loading').classList.add('hidden');
             }
+        }
+
+        function showStatus(msg, isError) {
+            statusMessage.textContent = msg;
+            statusMessage.className = `p-4 rounded-2xl text-[11px] font-bold text-center border ${isError ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`;
+            statusMessage.classList.remove('hidden');
         }
 
         generateBtn.addEventListener('click', postNews);
