@@ -109,7 +109,7 @@
         
         const appId = 'noticias-canarito-ia';
         
-        // --- PEGA TU API KEY DE GEMINI AQUÍ ABAJO ---
+        // --- API KEY INSERTADA CORRECTAMENTE ---
         const apiKey = "AIzaSyB7dsq5xGobd6Px5v5KfCE-BplAnfX5z5k"; 
 
         // UI
@@ -217,11 +217,10 @@
             statusMessage.classList.add('hidden');
 
             try {
-                const prompt = `Actúa como periodista deportivo canario. Escribe una noticia real de HOY sobre ${topic}. 
+                const prompt = `Eres un redactor deportivo de Canarias. Escribe una noticia real de HOY sobre ${topic}. 
                 Estructura:
-                Línea 1: Un titular impactante.
-                Resto: 3 párrafos de desarrollo con datos reales. 
-                Sin asteriscos ni negritas en el titular.`;
+                Línea 1: Titular sin negritas ni símbolos.
+                Siguientes líneas: 3 párrafos con información actual de fuentes reales.`;
 
                 const text = await fetchGemini(prompt);
                 if (!text) throw new Error("La IA no devolvió texto.");
@@ -231,7 +230,7 @@
                 
                 await addDoc(newsRef, {
                     title: lines[0].replace(/[#*]/g, '').trim(),
-                    content: lines.slice(1).join('\n\n').trim(),
+                    content: lines.slice(1).join('\n\n').replace(/[*]/g, '').trim(),
                     topic,
                     timestamp: serverTimestamp()
                 });
@@ -249,3 +248,4 @@
         generateBtn.addEventListener('click', generateNews);
     </script>
 </body>
+</html>
