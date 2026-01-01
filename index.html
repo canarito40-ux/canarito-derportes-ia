@@ -15,14 +15,28 @@
 <body class="flex flex-col min-h-screen">
 
     <header class="bg-gray-900 text-white p-6 shadow-xl">
-        <div class="container mx-auto flex justify-between items-center">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <h1 class="text-4xl font-black tracking-tighter text-blue-500">CANARITO<span class="text-white underline decoration-blue-600">DEPORTES</span></h1>
                 <p class="text-gray-400 text-sm font-medium">Información deportiva canaria generada por IA</p>
             </div>
-            <div class="flex flex-col items-end">
-                <span class="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Estado del Servidor</span>
-                <span class="px-3 py-1 rounded-full text-xs font-bold bg-gray-800 border border-gray-700" id="db-status">INICIANDO...</span>
+            <div class="flex items-center gap-4">
+                <!-- Contador de Visitas -->
+                <div class="flex flex-col items-end border-r border-gray-700 pr-4">
+                    <span class="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Visitas Totales</span>
+                    <div class="flex items-center text-blue-400 font-bold">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <span id="visit-count">...</span>
+                    </div>
+                </div>
+                <!-- Estado del Servidor -->
+                <div class="flex flex-col items-end">
+                    <span class="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Estado</span>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-gray-800 border border-gray-700" id="db-status">Iniciando</span>
+                </div>
             </div>
         </div>
     </header>
@@ -65,6 +79,8 @@
                     </div>
 
                     <div id="statusMessage" class="hidden p-4 rounded-xl text-sm font-bold animate-pulse"></div>
+                    
+                    <button id="retryAuthBtn" class="hidden w-full text-xs text-blue-600 underline font-bold py-2">¿Sigue dando error? Reintentar conexión</button>
                 </div>
             </div>
         </div>
@@ -94,7 +110,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Configuración de Firebase
         const firebaseConfig = {
@@ -111,12 +127,14 @@
         const apiKey = "AIzaSyB7dsq5xGobd6Px5v5KfCE-BplAnfX5z5k"; 
 
         const dbStatus = document.getElementById('db-status');
+        const visitCountEl = document.getElementById('visit-count');
         const generateBtn = document.getElementById('generateBtn');
         const loadingDiv = document.getElementById('loading');
         const statusMessage = document.getElementById('statusMessage');
         const newsContainer = document.getElementById('news-container');
         const topicSelect = document.getElementById('topic');
         const loadingInitial = document.getElementById('loading-initial');
+        const retryBtn = document.getElementById('retryAuthBtn');
 
         function showStatus(msg, isError = true) {
             statusMessage.textContent = msg;
@@ -126,39 +144,65 @@
 
         let db, auth;
         let isOnline = false;
+        let visitorRegistered = false;
 
-        try {
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
+        const connect = async () => {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
 
-            // Escuchar cambios de autenticación
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    isOnline = true;
-                    dbStatus.textContent = "ONLINE";
-                    dbStatus.className = "px-3 py-1 rounded-full text-xs font-bold bg-green-900 text-green-400 border border-green-800";
-                    statusMessage.classList.add('hidden');
-                    startNewsListener();
-                } else {
-                    // Si no hay usuario, intentar loguear
-                    signInAnonymously(auth).catch((err) => {
-                        console.error("Auth Error:", err.code, err.message);
-                        dbStatus.textContent = "AUTH ERROR";
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        isOnline = true;
+                        dbStatus.textContent = "ONLINE";
+                        dbStatus.className = "px-3 py-1 rounded-full text-xs font-bold bg-green-900 text-green-400 border border-green-800";
+                        statusMessage.classList.add('hidden');
+                        retryBtn.classList.add('hidden');
                         
-                        let customMsg = "Error de conexión con Firebase.";
-                        if (err.code === 'auth/operation-not-allowed') {
-                            customMsg = "Debes activar 'Anónimo' en Authentication > Sign-in Method en Firebase.";
-                        } else if (err.code === 'auth/unauthorized-domain') {
-                            customMsg = "Dominio no autorizado. Verifica que 'canarito40-ux.github.io' esté en la lista blanca.";
+                        // Registrar visita solo una vez por sesión
+                        if (!visitorRegistered) {
+                            registerVisit();
+                            visitorRegistered = true;
                         }
-                        showStatus(customMsg);
-                    });
-                }
-            });
 
-        } catch (e) {
-            dbStatus.textContent = "CONFIG ERROR";
+                        startNewsListener();
+                        startStatsListener();
+                    } else {
+                        signInAnonymously(auth).catch((err) => {
+                            console.error("Auth Error:", err.code);
+                            dbStatus.textContent = "ERROR";
+                            retryBtn.classList.remove('hidden');
+                        });
+                    }
+                });
+            } catch (e) {
+                dbStatus.textContent = "CONFIG ERROR";
+            }
+        };
+
+        async function registerVisit() {
+            try {
+                const visitsRef = collection(db, 'artifacts', appId, 'public', 'data', 'stats');
+                await addDoc(visitsRef, {
+                    type: 'visit',
+                    timestamp: serverTimestamp(),
+                    userAgent: navigator.userAgent
+                });
+            } catch (e) {
+                console.error("Error registrando visita:", e);
+            }
+        }
+
+        function startStatsListener() {
+            const statsRef = collection(db, 'artifacts', appId, 'public', 'data', 'stats');
+            onSnapshot(statsRef, (snap) => {
+                // Contamos cuántos documentos hay en la colección de estadísticas
+                visitCountEl.textContent = snap.size;
+            }, (err) => {
+                console.error("Error en stats:", err);
+                visitCountEl.textContent = "Error";
+            });
         }
 
         function startNewsListener() {
@@ -169,7 +213,6 @@
             }, (err) => {
                 console.error("Firestore Error:", err);
                 dbStatus.textContent = "DB ERROR";
-                showStatus("Error de permisos en la base de datos.");
             });
         }
 
@@ -193,7 +236,6 @@
 
         async function fetchGemini(prompt, retries = 5, delay = 1000) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-            
             for (let i = 0; i < retries; i++) {
                 try {
                     const response = await fetch(url, {
@@ -204,7 +246,6 @@
                             tools: [{ google_search: {} }]
                         })
                     });
-                    
                     if (!response.ok) throw new Error(`Error API: ${response.status}`);
                     const data = await response.json();
                     return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -229,23 +270,19 @@
             try {
                 const prompt = `Actúa como periodista deportivo canario. Escribe una noticia real de HOY sobre ${topic}. 
                 Estructura: Línea 1 Titular atractivo. Resto 3 párrafos cortos con datos actuales reales. No uses asteriscos.`;
-
                 const text = await fetchGemini(prompt);
                 if (!text) throw new Error("Sin respuesta de IA");
-
                 const lines = text.trim().split('\n').filter(l => l.trim().length > 0);
                 const newsRef = collection(db, 'artifacts', appId, 'public', 'data', 'news');
-                
                 await addDoc(newsRef, {
                     title: lines[0].replace(/[#*]/g, '').trim(),
                     content: lines.slice(1).join('\n\n').replace(/[*]/g, '').trim(),
                     topic,
                     timestamp: serverTimestamp()
                 });
-
-                showStatus("¡Noticia publicada correctamente!", false);
+                showStatus("¡Noticia publicada!", false);
             } catch (err) {
-                showStatus("Error al generar: " + err.message);
+                showStatus("Error: " + err.message);
             } finally {
                 loadingDiv.classList.add('hidden');
                 generateBtn.disabled = false;
@@ -253,6 +290,9 @@
         }
 
         generateBtn.addEventListener('click', generateNews);
+        retryBtn.addEventListener('click', () => location.reload());
+        
+        connect();
     </script>
 </body>
 </html>
