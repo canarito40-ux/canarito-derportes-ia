@@ -111,9 +111,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Inicialización global
         const firebaseConfig = JSON.parse(__firebase_config);
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -129,36 +128,34 @@
 
         let user = null;
 
-        // Iniciar Autenticación y luego sincronizar
         const startApp = async () => {
             try {
-                // RULE 3: Auth Before Queries
-                const initAuth = async () => {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                };
-                
-                await initAuth();
-
+                // Registrar el observador de estado antes de intentar el login
                 onAuthStateChanged(auth, (u) => {
                     if (u) {
                         user = u;
                         dbStatus.innerHTML = `<span class="h-2 w-2 rounded-full bg-green-500"></span> ONLINE`;
                         dbStatus.className = "text-[10px] font-black text-green-400 flex items-center gap-1.5";
                         
-                        if (!sessionStorage.getItem('canarito_v10_active')) {
+                        if (!sessionStorage.getItem('canarito_v11_active')) {
                             registerNewVisit();
-                            sessionStorage.setItem('canarito_v10_active', 'true');
+                            sessionStorage.setItem('canarito_v11_active', 'true');
                         }
                         syncData();
+                    } else {
+                        dbStatus.innerHTML = `<span class="h-2 w-2 rounded-full bg-red-500"></span> OFFLINE`;
                     }
                 });
+
+                // Intentar login
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
             } catch (e) { 
-                console.error("Auth Error:", e); 
-                showStatus("Error de conexión al sistema", true);
+                console.error("Firebase Auth Error:", e); 
+                dbStatus.innerHTML = `<span class="h-2 w-2 rounded-full bg-red-500"></span> ERROR`;
             }
         };
 
@@ -170,28 +167,25 @@
                     uid: user.uid,
                     timestamp: serverTimestamp()
                 });
-            } catch (e) {}
+            } catch (e) { console.error("Stats Error:", e); }
         }
 
         function syncData() {
             if (!user) return;
 
-            // Escuchar noticias
             const newsCol = collection(db, 'artifacts', appId, 'public', 'data', 'news');
             onSnapshot(newsCol, (snap) => {
                 document.getElementById('loading-initial').classList.add('hidden');
-                // RULE 2: No complex queries, fetch all then sort in JS
                 const news = snap.docs
                     .map(d => ({id: d.id, ...d.data()}))
                     .sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
                 renderNews(news);
-            }, (err) => console.error("Firestore News Error:", err));
+            }, (err) => console.error("News Snapshot Error:", err));
 
-            // Escuchar visitas
             const statsCol = collection(db, 'artifacts', appId, 'public', 'data', 'stats');
             onSnapshot(statsCol, (snap) => {
                 visitCountEl.textContent = snap.size || 0;
-            }, (err) => console.error("Firestore Stats Error:", err));
+            });
         }
 
         function renderNews(news) {
@@ -213,12 +207,11 @@
         }
 
         async function fetchAI(prompt, retries = 5, delay = 1500) {
-            // Usamos gemini-2.5-flash-preview-09-2025 que es el modelo más estable
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
                 systemInstruction: { 
-                    parts: [{ text: "Eres un periodista deportivo canario. Redactas en español de Canarias. Tu objetivo es la veracidad usando Google Search. PROHIBIDO usar asteriscos, negritas o símbolos extraños." }] 
+                    parts: [{ text: "Eres un periodista deportivo canario. Redactas en español de Canarias. PROHIBIDO usar asteriscos, negritas o símbolos extraños." }] 
                 },
                 tools: [{ "google_search": {} }]
             };
@@ -231,20 +224,15 @@
                         body: JSON.stringify(payload)
                     });
                     if (response.ok) return await response.json();
-                } catch (e) {
-                    if (i === retries - 1) throw e;
-                }
+                } catch (e) {}
                 await new Promise(res => setTimeout(res, delay));
-                delay *= 2; // Exponential backoff
+                delay *= 2;
             }
-            throw new Error("El redactor IA está saturado. Reintenta en 10 segundos.");
+            throw new Error("Saturación en el redactor IA. Reintenta.");
         }
 
         async function postNews() {
-            if (!user) {
-                showStatus("Esperando conexión con el sistema...", true);
-                return;
-            }
+            if (!user) return;
             
             const topic = document.getElementById('topic').value;
             generateBtn.disabled = true;
@@ -252,32 +240,28 @@
             statusMessage.classList.add('hidden');
 
             try {
-                const prompt = `Investiga noticias reales de HOY sobre ${topic} en Canarias. Escribe una crónica periodística seria. 
-                Línea 1: Titular impactante. 
-                Párrafos: 3 párrafos con detalles actuales. 
-                Regla de oro: No uses ningún asterisco (*), ni negritas, ni símbolos de formato. Solo texto plano.`;
+                const prompt = `Investiga noticias reales de HOY sobre ${topic} en Canarias. Escribe una crónica periodística seria. Línea 1: Titular. Párrafos: 3 párrafos. Sin asteriscos ni negritas.`;
                 
                 const data = await fetchAI(prompt);
                 const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 
-                if (!rawText) throw new Error("No se ha podido recibir la noticia.");
+                if (!rawText) throw new Error("Error de redacción.");
 
                 const lines = rawText.trim().split('\n').filter(l => l.trim().length > 0);
                 const title = lines[0].replace(/[#*]/g, '').trim();
                 const content = lines.slice(1).join('\n\n').replace(/[*#]/g, '').trim();
 
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'news'), {
-                    title: title || "Novedades en el deporte canario",
-                    content: content || "Estamos ampliando la información de esta noticia.",
+                    title: title || "Crónica",
+                    content: content || "...",
                     topic,
                     timestamp: serverTimestamp(),
                     author: user.uid
                 });
                 
-                showStatus("✅ Noticia publicada en el feed", false);
+                showStatus("✅ Publicada", false);
             } catch (e) {
                 showStatus("⚠️ " + e.message, true);
-                console.error("Generation Error:", e);
             } finally {
                 generateBtn.disabled = false;
                 document.getElementById('loading').classList.add('hidden');
