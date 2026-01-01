@@ -50,7 +50,7 @@
 
     <main class="container mx-auto p-4 md:p-8 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
         
-        <!-- Sidebar: Herramientas de Redacción -->
+        <!-- Sidebar -->
         <aside class="lg:col-span-4 order-2 lg:order-1">
             <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 sticky top-32">
                 <div class="flex items-center gap-3 mb-8">
@@ -77,21 +77,15 @@
 
                     <div id="loading" class="hidden bg-blue-50 p-6 rounded-2xl border border-blue-100 border-dashed text-center">
                         <div class="inline-block animate-spin h-6 w-6 border-4 border-blue-600 border-t-transparent rounded-full mb-3"></div>
-                        <p class="text-[10px] font-black text-blue-800 uppercase tracking-widest">Analizando actualidad canaria...</p>
+                        <p class="text-[10px] font-black text-blue-800 uppercase tracking-widest">Generando contenido actualizado...</p>
                     </div>
 
                     <div id="statusMessage" class="hidden p-4 rounded-2xl text-[11px] font-bold text-center border"></div>
                 </div>
-
-                <div class="mt-8 pt-8 border-t border-slate-100">
-                    <p class="text-[10px] text-slate-400 font-medium leading-relaxed italic">
-                        * Al pulsar, la IA buscará las últimas novedades y redactará una noticia original para el feed.
-                    </p>
-                </div>
             </div>
         </aside>
 
-        <!-- Feed de Noticias Principal -->
+        <!-- Feed Principal -->
         <section class="lg:col-span-8 order-1 lg:order-2">
             <div class="flex items-center justify-between mb-10 pb-4 border-b-2 border-slate-100">
                 <h2 class="text-3xl font-black text-slate-900 italic uppercase tracking-tighter flex items-center gap-3">
@@ -101,7 +95,6 @@
                         <span class="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
                     </span>
                 </h2>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Actualizado hace instantes</span>
             </div>
 
             <div id="news-container" class="space-y-8">
@@ -109,26 +102,17 @@
                     <div class="inline-block animate-bounce h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center mb-4 mx-auto">
                         <span class="text-blue-600 font-bold">...</span>
                     </div>
-                    <p class="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Sincronizando Archivo Deportivo</p>
+                    <p class="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Cargando noticias...</p>
                 </div>
             </div>
         </section>
     </main>
-
-    <footer class="bg-slate-900 text-slate-600 p-16 mt-20 text-center border-t border-slate-800 relative overflow-hidden">
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-white to-blue-600 opacity-20"></div>
-        <p class="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 mb-4">Canarito Deportes • IA 🇮🇨 2024</p>
-        <p class="text-xs max-w-xl mx-auto leading-loose font-medium">
-            Plataforma experimental de noticias locales generadas mediante inteligencia artificial. Todos los derechos reservados.
-        </p>
-    </footer>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // CONFIGURACIÓN FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyChegdpKCVYlK3Yk6UbaFQKBEBplH-9AY8",
             authDomain: "noticias-canarito-ia.firebaseapp.com",
@@ -139,7 +123,7 @@
         };
         
         const appId = 'noticias-canarito-ia';
-        const geminiKey = "AIzaSyB7dsq5xGobd6Px5v5KfCE-BplAnfX5z5k";
+        const apiKey = ""; // API Key gestionada por el entorno
 
         const dbStatus = document.getElementById('db-status');
         const visitCountEl = document.getElementById('visit-count');
@@ -147,7 +131,7 @@
         const newsContainer = document.getElementById('news-container');
         const statusMessage = document.getElementById('statusMessage');
 
-        let db, auth, isOnline = false;
+        let db, auth, user = null;
 
         const startApp = async () => {
             try {
@@ -155,43 +139,42 @@
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        isOnline = true;
+                // Esperar Auth antes de cualquier operación de DB
+                onAuthStateChanged(auth, (u) => {
+                    if (u) {
+                        user = u;
                         dbStatus.innerHTML = `<span class="h-2 w-2 rounded-full bg-green-500"></span> ONLINE`;
                         dbStatus.className = "text-[10px] font-black text-green-400 flex items-center gap-1.5";
                         
-                        if (!sessionStorage.getItem('canarito_v6_active')) {
+                        if (!sessionStorage.getItem('canarito_v7_active')) {
                             registerNewVisit();
-                            sessionStorage.setItem('canarito_v6_active', 'true');
+                            sessionStorage.setItem('canarito_v7_active', 'true');
                         }
-
                         syncData();
                     } else {
-                        await signInAnonymously(auth);
+                        signInAnonymously(auth);
                     }
                 });
-            } catch (e) { 
-                dbStatus.textContent = "CONEXIÓN ERROR"; 
-                console.error("Firebase error:", e);
-            }
+            } catch (e) { console.error(e); }
         };
 
         async function registerNewVisit() {
+            if (!user) return;
             try {
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'stats'), {
                     type: 'visit',
                     timestamp: serverTimestamp()
                 });
-            } catch (e) { console.warn("Log failed"); }
+            } catch (e) {}
         }
 
         function syncData() {
+            if (!user) return;
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'news'), (snap) => {
                 document.getElementById('loading-initial').classList.add('hidden');
                 const news = snap.docs.map(d => d.data()).sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
                 renderNews(news);
-            }, (err) => console.error("Snapshot error:", err));
+            }, (err) => console.error(err));
 
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'stats'), (snap) => {
                 visitCountEl.textContent = snap.size || 0;
@@ -200,73 +183,77 @@
 
         function renderNews(news) {
             if (news.length === 0) {
-                newsContainer.innerHTML = `<div class="bg-white p-24 rounded-[3rem] text-center border-4 border-dashed border-slate-100 text-slate-300 font-black uppercase tracking-[0.2em] italic">No hay noticias publicadas</div>`;
+                newsContainer.innerHTML = `<div class="bg-white p-24 rounded-[3rem] text-center border-4 border-dashed border-slate-100 text-slate-300 font-black uppercase tracking-[0.2em] italic">No hay noticias aún</div>`;
                 return;
             }
             newsContainer.innerHTML = news.map(n => `
                 <article class="news-card bg-white p-8 md:p-12 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
                     <div class="absolute top-0 left-0 w-2 h-full bg-blue-600 transition-all group-hover:w-3"></div>
                     <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
-                        <span class="bg-blue-600 text-white text-[10px] font-black px-5 py-2 rounded-xl uppercase tracking-widest">${n.topic || 'General'}</span>
-                        <span class="text-[11px] text-slate-400 font-black uppercase tracking-tighter">${n.timestamp ? new Date(n.timestamp.toMillis()).toLocaleString('es-ES') : 'Recién publicado'}</span>
+                        <span class="bg-blue-600 text-white text-[10px] font-black px-5 py-2 rounded-xl uppercase tracking-widest">${n.topic || 'Deportes'}</span>
+                        <span class="text-[11px] text-slate-400 font-black uppercase">${n.timestamp ? new Date(n.timestamp.toMillis()).toLocaleString() : 'Justo ahora'}</span>
                     </div>
-                    <h3 class="text-2xl md:text-4xl font-black text-slate-900 mb-8 leading-tight tracking-tighter italic uppercase">${n.title || 'Sin título'}</h3>
-                    <div class="text-slate-600 leading-relaxed whitespace-pre-line text-base md:text-lg font-medium selection:bg-blue-100">${n.content || 'Sin contenido'}</div>
+                    <h3 class="text-2xl md:text-4xl font-black text-slate-900 mb-8 leading-tight italic uppercase">${n.title}</h3>
+                    <div class="text-slate-600 leading-relaxed whitespace-pre-line text-base md:text-lg">${n.content}</div>
                 </article>
             `).join('');
         }
 
-        async function postNews() {
-            if (!isOnline) {
-                showStatus("❌ Esperando conexión...", true);
-                return;
+        // Función de llamada a la API con Exponential Backoff
+        async function fetchAI(prompt, retries = 5, delay = 1000) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: "Eres un periodista deportivo de Canarias. No uses asteriscos ni lenguaje de marcado." }] },
+                tools: [{ "google_search": {} }]
+            };
+
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) return await response.json();
+                    if (response.status === 429) { /* Rate limit, continue to retry */ }
+                } catch (e) {
+                    if (i === retries - 1) throw e;
+                }
+                await new Promise(res => setTimeout(res, delay));
+                delay *= 2;
             }
-            
+            throw new Error("No se pudo conectar con el servidor de noticias.");
+        }
+
+        async function postNews() {
+            if (!user) return;
             const topic = document.getElementById('topic').value;
             generateBtn.disabled = true;
             document.getElementById('loading').classList.remove('hidden');
             statusMessage.classList.add('hidden');
 
             try {
-                const prompt = `Escribe una noticia real y actual de hoy sobre ${topic} en Canarias. 
-                IMPORTANTE: No uses asteriscos, hashtags ni símbolos especiales. 
-                Estructura: 
-                Línea 1: Titular.
-                Líneas siguientes: 3 párrafos de desarrollo.`;
-                
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiKey}`;
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        contents: [{ parts: [{ text: prompt }] }],
-                        tools: [{ "google_search": {} }]
-                    })
-                });
-
-                if (!response.ok) throw new Error("Error en la respuesta de la API");
-
-                const data = await response.json();
+                const prompt = `Escribe una noticia real de hoy sobre ${topic} en Canarias. Línea 1: Titular. Párrafos siguientes: cuerpo de la noticia (3 párrafos cortos). No uses asteriscos.`;
+                const data = await fetchAI(prompt);
                 const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 
-                if (!rawText) throw new Error("La IA no devolvió texto. Inténtalo de nuevo.");
+                if (!rawText) throw new Error("La redacción está ocupada, intenta en un momento.");
 
                 const lines = rawText.trim().split('\n').filter(l => l.trim().length > 0);
                 const title = lines[0].replace(/[#*]/g, '').trim();
                 const content = lines.slice(1).join('\n\n').replace(/[*]/g, '').trim();
 
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'news'), {
-                    title: title || "Noticia Actualizada",
-                    content: content || "Contenido en proceso de actualización.",
+                    title: title || "Actualidad Deportiva",
+                    content: content || "Estamos redactando los detalles.",
                     topic,
                     timestamp: serverTimestamp()
                 });
                 
-                showStatus("✅ ¡Publicada con éxito!", false);
+                showStatus("✅ Publicada con éxito", false);
             } catch (e) {
-                console.error("Post error:", e);
-                showStatus("❌ Error: " + e.message, true);
+                showStatus("❌ " + e.message, true);
             } finally {
                 generateBtn.disabled = false;
                 document.getElementById('loading').classList.add('hidden');
